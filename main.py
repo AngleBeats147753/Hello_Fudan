@@ -13,8 +13,11 @@ import numpy
 from PIL import Image
 from PIL import ImageEnhance
 
+import requests
 from requests import session, post, adapters
+
 adapters.DEFAULT_RETRIES = 5
+
 
 class Fudan:
     """
@@ -151,7 +154,7 @@ class Zlapp(Fudan):
         print("◉上一次提交地址为:", position['formattedAddress'])
         # print("◉上一次提交GPS为", position["position"])
         # print(last_info)
-        
+
         # 改为上海时区
         os.environ['TZ'] = 'Asia/Shanghai'
         time.tzset()
@@ -159,30 +162,30 @@ class Zlapp(Fudan):
         print("◉今日日期为:", today)
         if last_info["d"]["info"]["date"] == today:
             print("\n*******今日已提交*******")
+            send_message("平安复旦打卡成功")
             self.close()
         else:
             print("\n\n*******未提交*******")
             self.last_info = last_info["d"]["oldInfo"]
-            
+
     def read_captcha(self, img_byte):
         img = Image.open(io.BytesIO(img_byte)).convert('L')
         enh_bri = ImageEnhance.Brightness(img)
         new_img = enh_bri.enhance(factor=1.5)
-        
+
         image = numpy.array(new_img)
         reader = easyocr.Reader(['en'])
         horizontal_list, free_list = reader.detect(image, optimal_num_chars=4)
         character = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         allow_list = list(character)
         allow_list.extend(list(character.lower()))
-    
-        result = reader.recognize(image, 
-                                allowlist=allow_list,
-                                horizontal_list=horizontal_list[0],
-                                free_list=free_list[0],
-                                detail = 0)
+
+        result = reader.recognize(image,
+                                  allowlist=allow_list,
+                                  horizontal_list=horizontal_list[0],
+                                  free_list=free_list[0],
+                                  detail=0)
         return result[0]
-    
 
     def validate_code(self):
         img = self.session.get(self.url_code).content
@@ -206,8 +209,8 @@ class Zlapp(Fudan):
         province = self.last_info["province"]
         city = self.last_info["city"]
         district = geo_api_info["addressComponent"].get("district", "")
-        
-        while(True):
+
+        while (True):
             print("◉正在识别验证码......")
             code = self.validate_code()
             print("◉验证码为:", code)
@@ -217,8 +220,8 @@ class Zlapp(Fudan):
                     "province": province,
                     "city": city,
                     "area": " ".join((province, city, district)),
-                    #"sfzx": "1",  # 是否在校
-                    #"fxyy": "",  # 返校原因
+                    # "sfzx": "1",  # 是否在校
+                    # "fxyy": "",  # 返校原因
                     "code": code,
                 }
             )
@@ -232,8 +235,9 @@ class Zlapp(Fudan):
             save_msg = json_loads(save.text)["m"]
             print(save_msg, '\n\n')
             time.sleep(0.1)
-            if(json_loads(save.text)["e"] != 1):
+            if (json_loads(save.text)["e"] != 1):
                 break
+
 
 def get_account():
     """
@@ -260,16 +264,25 @@ def get_account():
         uid = input("学号：")
         psw = getpass("密码：")
         with open("account.txt", "w") as new:
-            tmp = "uid:" + uid + "\npsw:" + psw +\
-                "\n\n\n以上两行冒号后分别写上学号密码，不要加空格/换行，谢谢\n\n请注意文件安全，不要放在明显位置\n\n可以从dailyFudan.exe创建快捷方式到桌面"
+            tmp = "uid:" + uid + "\npsw:" + psw + \
+                  "\n\n\n以上两行冒号后分别写上学号密码，不要加空格/换行，谢谢\n\n请注意文件安全，不要放在明显位置\n\n可以从dailyFudan.exe创建快捷方式到桌面"
             new.write(tmp)
         print("账号已保存在目录下account.txt，请注意文件安全，不要放在明显位置\n\n建议拉个快捷方式到桌面")
 
     return uid, psw
 
 
+def send_message(content: str) -> None:
+    token = getenv("PUSH_PLUS_TOKEN")
+    if token is None:
+        print("token不存在，无法向公众号发送打卡状态")
+        return
+    requests.get(f"http://www.pushplus.plus/send?token={token}&title={content}&content={content}")
+
+
 if __name__ == '__main__':
-    uid, psw = get_account()
+    # uid, psw = get_account()
+    uid, psw = "22210240172", "Huang369951."
     # print(uid, psw)
     zlapp_login = 'https://uis.fudan.edu.cn/authserver/login?' \
                   'service=https://zlapp.fudan.edu.cn/site/ncov/fudanDaily'
@@ -282,4 +295,5 @@ if __name__ == '__main__':
     daily_fudan.checkin()
     # 再检查一遍
     daily_fudan.check()
+    send_message("平安复旦打卡失败！！！")
     daily_fudan.close(1)

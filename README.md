@@ -1,7 +1,8 @@
 # ⚙ 自动平安复旦脚本 Hello Fudan
 ## ⭐️ 最新支持验证码的平安复旦脚本
 
-查看 [部署教程](https://github.com/ZiYang-xie/pafd-automated/tree/master/docs)
+查看 [部署教程](https://github.com/ZiYang-xie/pafd-automated/tree/master/docs)  
+注意：由于使用pushplus添加了消息推送功能，所需还需要在secret中添加PUSH_PLUS_TOKEN，从[pushplus](http://www.pushplus.plus/push1.html) 上获取Token
 
 ### 1. 简介 📃
 本仓库是原仓库 [pafd-automated](https://github.com/FDUCSLG/pafd-automated) 的扩展版，添加了验证码识别模块，且无需第三方的账号，识别率目前仍然是100%
